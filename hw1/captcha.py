@@ -1,10 +1,10 @@
-from PIL import Image
+from PIL import Image, ImageEnhance
 from skimage import data
 import tesserocr, pytesseract
 from random import randint
 
 
-num = randint(1, 66)
+num = randint(1, 60)
 
 def removeSault(img):
     pixel = img.load()
@@ -59,11 +59,11 @@ def move(img):
     for i in range(0, 5):
         offsetx = (i + 1) * 20
         max = 0
-        for x in range(offsetx - 20, offsetx - 16 - 1):
-            for y in range(0, 50 - 16 - 1):
+        for x in range(offsetx - 20, offsetx - 14 - 1):
+            for y in range(0, 50 - 14 - 1):
                 count = 0
-                for m in range(0, 16):
-                    for n in range(0, 16):
+                for m in range(0, 14):
+                    for n in range(0, 14):
                         if  pixel[m + x, n + y] == 0:
                             count += 1
 
@@ -75,23 +75,26 @@ def move(img):
 
         # offset = posy - 0
         # for x in range(posx, posx + 20):
-        #     for y in range(posy, posy + 16):
+        #     for y in range(posy, posy + 14):
         #         pixel[x, y - offset] = pixel[x, y]
         #         pixel[x, y] = 255
 
-        if posy + 8 <= 25:
-            offset = 25 - (posy + 8)
-            # print('offset:' + str(offset))
-            for x in range(posx, posx + 16):
-                for y in range(posy + 16 - 1, posy - 1, -1):
-                    pixel[x, y + offset] = pixel[x, y]
-                    pixel[x, y] = 255
+        if posy + 7 <= 25:
+            offset = 25 - (posy + 7)
+
+            if offset > 5:
+                for x in range(posx, posx + 14):
+                    for y in range(posy + 14 - 1, posy - 1, -1):
+                        pixel[x, y + offset] = pixel[x, y]
+                        pixel[x, y] = 255
+
         else:
-            offset = (posy + 8) - 25
-            for x in range(posx, posx + 16):
-                for y in range(posy, posy + 16):
-                    pixel[x, y - offset] = pixel[x, y]
-                    pixel[x, y] = 255
+            offset = (posy + 7) - 25
+            if offset > 5:
+                for x in range(posx, posx + 14):
+                    for y in range(posy, posy + 14):
+                        pixel[x, y - offset] = pixel[x, y]
+                        pixel[x, y] = 255
 
     return img
 
@@ -112,7 +115,10 @@ def decode(img):
 
 
 
-img = Image.open('captcha' + str(39) + '.png').convert('L')
+img = Image.open('captcha' + str(num) + '.png')
+# enhancer = ImageEnhance.Contrast(img)
+# img = enhancer.enhance(3)
+img = img.convert('L')
 print(num)
 img = removeSault(img)
 img.show()
