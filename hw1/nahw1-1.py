@@ -6,7 +6,7 @@ import ssl, urllib3, urllib, re, math
 from PIL import Image, ImageEnhance
 import tesserocr
 import sys, os
-import getpass
+import getpass, argparse
 
 
 class CourseCrawler:
@@ -399,26 +399,16 @@ class CourseCrawler:
 				print(seperate)
 		print(seperate)
 
-
-def showUsage():
-	print('Usage: nahw1-1.py [-h] <student_id>\n')
-	print('This is a web crawler for NCTU class schedule.\n')
-	print('Positional arguments:')
-	print('  student_id:  Your student id of NCTU portal.\n')
-	print('Optional arguments:')
-	print('  -h, --help:  Show this help message and exit')
-
-
 def main():
+
+
+	parser = argparse.ArgumentParser(description='Web crawer for NCTU class schedule')
+	parser.add_argument('username', help='username of NCTU portal')
+	parser.parse_args()
 
 	# getting the student id and the password
 	if len(sys.argv) < 2:
 		print('Usage: ' + str(sys.argv[0] + ' <student_id>'))
-		sys.exit(1)
-
-	# -h command
-	if sys.argv[1] == '-h' or sys.argv[1] == '--help':
-		showUsage()
 		sys.exit(1)
 
 	student_id = sys.argv[1]
