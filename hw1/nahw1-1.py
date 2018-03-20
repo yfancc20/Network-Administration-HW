@@ -3,9 +3,10 @@ import requests
 from bs4 import BeautifulSoup
 from lxml import html
 import ssl, urllib3, urllib, re, math
-import tesserocr
 from PIL import Image, ImageEnhance
-import tesserocr, pytesseract
+import tesserocr
+import sys, os
+import getpass
 
 
 class CourseCrawler:
@@ -13,11 +14,15 @@ class CourseCrawler:
 	""" Constructor """
 	def __init__(self, s_id, password):
 		""" Basic info """
+		self.student_id = s_id
+		self.filename = 'result.html'
+
 		# some urls
 		self.url = 'https://course.nctu.edu.tw'
 		self.url_pic = 'https://course.nctu.edu.tw/getSafeCode.asp'
 		self.url_pic2 = 'https://course.nctu.edu.tw/function/Safecode.asp'
 		self.url_login = 'https://course.nctu.edu.tw/inCheck.asp'
+		self.url_logout = 'https://course.nctu.edu.tw/inTheEnd.asp'
 		self.url_table = 'https://course.nctu.edu.tw/adSchedule.asp'
 
 		# headers
@@ -41,7 +46,6 @@ class CourseCrawler:
 			'ID': s_id,
 			'passwd': password,
 			'qCode': '',
-			'Action': '登入',
 		}
 
 		# counting login
@@ -56,7 +60,7 @@ class CourseCrawler:
 
 	def getCookies(self):
 		# set the cookies
-		if self.headers['Cookie']  == '':
+		if self.headers['Cookie'] == '':
 			result = requests.get(self.url, verify=False)
 			self.headers['Cookie'] = ''
 			for (key, val) in result.cookies.items():
@@ -80,6 +84,13 @@ class CourseCrawler:
 		# login requests
 		result = requests.post(self.url_login, data=self.post_data, headers=self.headers, verify=False)
 		self.login_count += 1
+
+		return result
+
+
+	def logoutSend(self):
+		# logout requests
+		result = requests.post(self.url_logout, headers=self.headers, verify=False)
 
 		return result
 
@@ -151,6 +162,7 @@ class CourseCrawler:
 	    for i in range(0, 5):
 	        offsetx = (i + 1) * 20
 	        max = 0
+	        posx, posy = offsetx, 0
 	        for x in range(offsetx - 20, offsetx - 14 - 1):
 	            for y in range(0, 50 - 14 - 1):
 	                count = 0
@@ -209,6 +221,7 @@ class CourseCrawler:
 		img = self.move(img)
 		# img.show()
 		code = self.decode(img)
+		# print(code)
 		self.post_data['qCode'] = code
 
 		return code
@@ -219,19 +232,22 @@ class CourseCrawler:
 		r = requests.get(self.url_table, headers=self.headers, verify=False)
 		r.encoding = 'big5'
 		soup = BeautifulSoup(r.text, 'html.parser')
-		with open('result.html', 'wb') as file:
+		with open(self.filename, 'wb') as file:
 			file.write(r.content)
 
 		big_title = soup.find_all('td', class_='headtitle')
 		big_title = str(big_title)[:100]
 
-
-		if big_title.find('0312236') != -1:
+		if big_title.find(self.student_id) != -1:
 			print('Login Sucessfully!')
 			print('Try: ' + str(self.login_count) + ' times')
 			self.parseSchedule()
-		elif big_title.find('Limit') != -1:
-			print('Login Limits')
+
+		elif big_title.find('Login_Limit_Error') != -1:
+			print('Try: ' + str(self.login_count) + ' times')
+			print('Exceed login limits, please try again later')
+			sys.exit(1)
+
 		else:
 			self.retry()
 
@@ -244,7 +260,7 @@ class CourseCrawler:
 
 	def parseSchedule(self):
 		""" for local debug """
-		local_url = '/Users/yfancc20/School/大四/NA/HW/hw1/result.html'
+		local_url = os.path.join(sys.path[0], self.filename)
 		file = open(local_url, encoding='big5')
 		soup = BeautifulSoup(file, 'html.parser')
 
@@ -263,10 +279,11 @@ class CourseCrawler:
 				i += 1
 				continue
 
-			cells = row.find_all('td')
+			# parse the table
 			string = ''
 			content = []
 			j = 0
+			cells = row.find_all('td')
 			for cell in cells:
 				font = cell.find('font')
 				tmp_string = ''
@@ -275,12 +292,12 @@ class CourseCrawler:
 					tmp_string = tmp_string.strip(' \t\n\r')
 					tmp_string = tmp_string.replace('\n', ' ')
 					tmp_string = tmp_string.replace('\t', ' ')
-					tmp_string = re.sub(' +', ' ', tmp_string)
+					tmp_string = re.sub(' +', '', tmp_string)
 				else:
 					tmp_string = font.string.strip(' \t\n\r')
 
-				tmp_string = tmp_string.replace('（', '(')
-				tmp_string = tmp_string.replace('）', ')')
+				# tmp_string = tmp_string.replace('（', '(')
+				# tmp_string = tmp_string.replace('）', ')')
 
 				length = len(tmp_string)
 				for word in tmp_string:
@@ -341,6 +358,20 @@ class CourseCrawler:
 							if trans > 126:
 					   			length += 1
 
+						# space_length = math.floor((cells_size[i] - length) / 2)
+						# for x in range(0, space_length + 1):
+						# 	string += ' '
+						# string += row[i]
+						# for x in range(0, space_length + 1):
+						# 	string += ' '
+
+						# if length == 2:
+						# 	string += ' '
+						# if length < 3:
+						# 	string += ' '
+						# elif length < cells_size[i] and length % 2 == 1:
+						# 	string += ' '
+
 						if length == cells_size[i]:
 							string += ' ' + row[i] + ' '
 
@@ -351,6 +382,11 @@ class CourseCrawler:
 						else:
 							space_length = math.floor((cells_size[i] + 2) / 2)
 							space = '{:\u3000^' + str(space_length) + '}'
+							if cells_size[i] - length == 1:
+								string += ' '
+
+							if cells_size[i] % 2 == 1 and length % 2 == 0:
+								string += ' '
 							string += space.format(row[i])
 
 					string += '|'
@@ -366,19 +402,30 @@ class CourseCrawler:
 
 
 def main():
-	student_id = '0312236'
-	password = 'P6z3L60B'
 
+	# getting the student id and the password
+	if len(sys.argv) < 2:
+		print('Usage: ' + str(sys.argv[0] + ' <student id>'))
+		sys.exit(1)
+
+	student_id = sys.argv[1]
+	password = getpass.getpass('password:')
+
+	# initial the crawler
 	crawler = CourseCrawler(student_id, password)
+
+	# get the cookies
+	print('Visiting the sites...')
 	cookies = crawler.getCookies()
 	print('Cookies: ' + str(cookies))
 
+	# get the captcha and login
 	crawler.getCaptcha()
-	crawler.loginSend()
 	print('Login...')
+	crawler.loginSend()
+
+	# get the schedule and parse
 	crawler.getSchedule()
-
-
 
 
 main()
