@@ -116,14 +116,9 @@ def decode(img):
 
 
 img = Image.open('captcha' + str(num) + '.png')
-# enhancer = ImageEnhance.Contrast(img)
-# img = enhancer.enhance(3)
 img = img.convert('L')
-print(num)
 img = removeSault(img)
-img.show()
 img = move(img)
-img.show()
 code = decode(img)
 
 print(code)
