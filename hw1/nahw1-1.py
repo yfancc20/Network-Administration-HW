@@ -221,7 +221,7 @@ class CourseCrawler:
 		img = self.move(img)
 		# img.show()
 		code = self.decode(img)
-		print(code)
+		# print(code)
 		self.post_data['qCode'] = code
 
 		return code
@@ -241,6 +241,7 @@ class CourseCrawler:
 		if big_title.find(self.student_id) != -1:
 			print('Login Sucessfully!')
 			print('Try: ' + str(self.login_count) + ' times')
+			print('Final Captcha: ' + str(self.post_data['qCode']))
 			self.parseSchedule()
 
 		elif big_title.find('Login_Limit_Error') != -1:
