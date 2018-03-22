@@ -221,7 +221,7 @@ class CourseCrawler:
 		img = self.move(img)
 		# img.show()
 		code = self.decode(img)
-		# print(code)
+		print(code)
 		self.post_data['qCode'] = code
 
 		return code
